@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Productivity Dashboard</title>
+<style>
+:root{--bg:#18181b;--card:#27272a;--card2:#313136;--line:#3f3f46;--text:#f4f4f5;--mute:#a1a1aa;--blue:#2563eb;--blue2:#60a5fa;--ok:#22c55e;--bad:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:20px 24px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-size:1.4rem;margin:0}
+nav{display:flex;gap:6px;flex-wrap:wrap;padding:16px 24px;border-bottom:1px solid var(--line)}
+nav button{background:none;border:1px solid transparent;color:var(--mute);padding:8px 14px;border-radius:8px;cursor:pointer;font:inherit}
+nav button[aria-selected=true]{background:var(--card);color:var(--text);border-color:var(--line)}
+main{padding:24px;max-width:1200px;margin:auto}
+section{display:none}section.on{display:block}
+input,textarea,select{width:100%;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font:inherit;margin-bottom:10px}
+textarea{min-height:90px;resize:vertical}
+::placeholder{color:#8b8b94}
+:focus-visible{outline:2px solid var(--blue2);outline-offset:2px}
+.btn{background:var(--blue);color:#fff;border:0;border-radius:8px;padding:11px 18px;font:inherit;font-weight:600;cursor:pointer}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost{background:var(--card2);font-weight:500}
+.stats{display:flex;gap:12px;flex-wrap:wrap}
+.stat{background:var(--card);border-radius:10px;padding:10px 16px;min-width:110px}
+.stat b{display:block;font-size:1.4rem}.stat span{color:var(--mute);font-size:.85rem}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok);width:0;transition:width .3s}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:28px}
+.card{background:var(--card);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:8px;min-height:120px}
+.card h3{margin:0;font-size:1.05rem;word-break:break-word}
+.card.done h3{text-decoration:line-through;color:var(--mute)}
+.card p{margin:0;color:var(--mute);font-size:.92rem;white-space:pre-wrap;word-break:break-word}
+.card .more{background:none;border:0;color:var(--blue2);padding:0;font:inherit;font-size:.9rem;cursor:pointer;text-align:left;width:max-content}
+.row{display:flex;gap:10px;margin-top:auto;align-items:center;flex-wrap:wrap}
+.row button{background:none;border:0;color:var(--mute);cursor:pointer;font:inherit;font-size:.85rem;padding:0}
+.row button:hover{color:var(--text)}
+.row .del:hover{color:var(--bad)}
+.empty{color:var(--mute);margin-top:28px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sched{margin-top:24px;display:grid;gap:8px}
+.slot{background:var(--card);border-radius:10px;padding:12px 16px;display:flex;gap:16px;align-items:center}
+.slot time{color:var(--blue2);font-weight:600;min-width:70px}
+.slot span{flex:1}.slot button{background:none;border:0;color:var(--mute);cursor:pointer;font-size:1.1rem}
+.slot button:hover{color:var(--bad)}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;white-space:pre-wrap;word-break:break-word;font:.9rem/1.6 ui-monospace,Menlo,Consolas,monospace;margin:0}
+.lab{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.lab label{font-weight:600;font-size:.9rem;display:block;margin-bottom:4px}
+.lab label small{color:var(--mute);font-weight:400}
+.loop{display:flex;flex-wrap:wrap;gap:6px;align-items:center;color:var(--mute);margin-bottom:20px;font-size:.9rem}
+.loop b{background:var(--card);color:var(--text);padding:3px 10px;border-radius:99px;font-weight:500}
+dialog{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:12px;max-width:520px;width:calc(100% - 32px);padding:22px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h2{margin-top:0;word-break:break-word}dialog p{white-space:pre-wrap;color:#d4d4d8;word-break:break-word}
+@media(max-width:760px){.lab{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Student Productivity Dashboard</h1>
+  <div class="stats" aria-live="polite">
+    <div class="stat"><b id="sDone">0/0</b><span>tasks done</span><div class="bar"><i id="sBar"></i></div></div>
+    <div class="stat"><b id="sSlots">0</b><span>schedule items</span></div>
+    <div class="stat"><b id="sNotes">0</b><span>notes</span></div>
+  </div>
+</header>
+<nav role="tablist">
+  <button role="tab" data-tab="tasks" aria-selected="true">Tasks</button>
+  <button role="tab" data-tab="schedule" aria-selected="false">Schedule</button>
+  <button role="tab" data-tab="notes" aria-selected="false">Notes</button>
+  <button role="tab" data-tab="lab" aria-selected="false">Prompt Lab</button>
+</nav>
+<main>
+
+<section id="tasks" class="on">
+  <input id="tTitle" placeholder="Title goes here.." maxlength="80" aria-label="Task title">
+  <textarea id="tBody" placeholder="Write your task details here..." aria-label="Task details"></textarea>
+  <button class="btn" id="tAdd">Create Task</button>
+  <div class="grid" id="tList"></div>
+</section>
+
+<section id="schedule">
+  <div class="two">
+    <input id="sTitle" placeholder="What is happening? e.g. DBMS lecture" maxlength="80" aria-label="Event">
+    <div class="two" style="margin:0">
+      <select id="sDay" aria-label="Day"><option>Mon</option><option>Tue</option><option>Wed</option><option>Thu</option><option>Fri</option><option>Sat</option><option>Sun</option></select>
+      <input id="sTime" type="time" value="09:00" aria-label="Time">
+    </div>
+  </div>
+  <button class="btn" id="sAdd">Add to schedule</button>
+  <div class="sched" id="sList"></div>
+</section>
+
+<section id="notes">
+  <input id="nTitle" placeholder="Note title" maxlength="80" aria-label="Note title">
+  <textarea id="nBody" placeholder="Write your note..." aria-label="Note text"></textarea>
+  <button class="btn" id="nAdd">Save note</button>
+  <div class="grid" id="nList"></div>
+</section>
+
+<section id="lab">
+  <div class="loop"><b>Idea</b>›<b>Prompt</b>›<b>Code</b>›<b>Test</b>›<b>Iterate</b>›<b>Product</b></div>
+  <div class="lab">
+    <div>
+      <label for="cC">Context <small>What are we building and why?</small></label>
+      <textarea id="cC">Student productivity dashboard for college students. Goal: help them stay on top of deadlines.</textarea>
+      <label for="cR">Role <small>Who should the AI act as?</small></label>
+      <input id="cR" value="You are a senior frontend developer with strong design taste.">
+      <label for="cA">Action <small>One clear task, strong verb</small></label>
+      <textarea id="cA">Build a dashboard with task manager, weekly schedule, notes and a progress counter.</textarea>
+      <label for="cF">Format <small>File type, length, structure</small></label>
+      <input id="cF" value="One HTML file with CSS and JS inside, short comment per section.">
+      <label for="cT">Target <small>Audience, device, tone</small></label>
+      <input id="cT" value="First-year students, mostly on phones. Dark theme, one accent colour.">
+      <label for="cK">Constraints <small>What to keep or avoid</small></label>
+      <input id="cK" value="Do not add dependencies. Keep the architecture simple.">
+    </div>
+    <div>
+      <label>Your CRAFT prompt</label>
+      <pre id="out"></pre>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="copy">Copy prompt</button>
+        <button class="btn ghost" id="explain">Add "explain first"</button>
+      </div>
+      <p class="empty" id="score" style="margin-top:16px"></p>
+    </div>
+  </div>
+</section>
+</main>
+
+<dialog id="dlg"><h2 id="dT"></h2><p id="dB"></p><button class="btn" id="dX">Close</button></dialog>
+
+<script>
+// ---------- storage (safe wrappers) ----------
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+ set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let tasks=store.get('tasks',[]),slots=store.get('slots',[]),notes=store.get('notes',[]);
+
+// ---------- tabs ----------
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.tab));
+});
+
+// ---------- dialog ----------
+function openDlg(t,b){$('dT').textContent=t;$('dB').textContent=b||'(no details)';$('dlg').showModal()}
+$('dX').onclick=()=>$('dlg').close();
+
+// ---------- render ----------
+function stats(){
+  const d=tasks.filter(t=>t.done).length;
+  $('sDone').textContent=d+'/'+tasks.length;
+  $('sBar').style.width=(tasks.length?d/tasks.length*100:0)+'%';
+  $('sSlots').textContent=slots.length;$('sNotes').textContent=notes.length;
+}
+function cards(list,key,el,withDone){
+  el.innerHTML=list.length?list.map((t,i)=>`<article class="card ${t.done?'done':''}">
+    <h3>${esc(t.title)}</h3>
+    <button class="more" data-a="read" data-i="${i}">read more</button>
+    <div class="row">${withDone?`<button data-a="done" data-i="${i}">${t.done?'Undo':'Mark done'}</button>`:''}<button class="del" data-a="del" data-i="${i}">Delete</button></div>
+  </article>`).join(''):`<p class="empty">Nothing here yet. Add your first one above.</p>`;
+}
+function render(){
+  cards(tasks,'tasks',$('tList'),true);cards(notes,'notes',$('nList'),false);
+  const order='Mon Tue Wed Thu Fri Sat Sun'.split(' ');
+  const s=[...slots].sort((a,b)=>order.indexOf(a.day)-order.indexOf(b.day)||a.time.localeCompare(b.time));
+  $('sList').innerHTML=s.length?s.map(x=>`<div class="slot"><time>${x.day} ${x.time}</time><span>${esc(x.title)}</span><button aria-label="Delete ${esc(x.title)}" data-id="${x.id}">×</button></div>`).join(''):`<p class="empty">No schedule yet. Add a class or study block above.</p>`;
+  stats();
+}
+function wire(el,list,key){el.onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i,a=b.dataset.a;
+  if(a==='read')openDlg(list()[i].title,list()[i].body);
+  if(a==='done'){list()[i].done=!list()[i].done}
+  if(a==='del'){list().splice(i,1)}
+  if(a!=='read'){store.set(key,list());render()}
+}}
+wire($('tList'),()=>tasks,'tasks');wire($('nList'),()=>notes,'notes');
+$('sList').onclick=e=>{const b=e.target.closest('button');if(!b)return;slots=slots.filter(x=>x.id!==b.dataset.id);store.set('slots',slots);render()};
+
+// ---------- add ----------
+function add(tI,bI,list,key,extra){
+  const title=$(tI).value.trim();
+  if(!title){$(tI).focus();$(tI).placeholder='Please enter a title first';return}
+  list.unshift({title,body:$(bI).value.trim(),...extra});
+  $(tI).value='';$(bI).value='';store.set(key,list);render();
+}
+$('tAdd').onclick=()=>add('tTitle','tBody',tasks,'tasks',{done:false});
+$('nAdd').onclick=()=>add('nTitle','nBody',notes,'notes',{});
+$('sAdd').onclick=()=>{
+  const title=$('sTitle').value.trim();if(!title){$('sTitle').focus();return}
+  slots.push({id:String(Date.now()),title,day:$('sDay').value,time:$('sTime').value||'09:00'});
+  $('sTitle').value='';store.set('slots',slots);render();
+};
+
+// ---------- Prompt Lab (CRAFT) ----------
+let explain=false;
+const parts=[['cC','Context'],['cR','Role'],['cA','Action'],['cF','Format'],['cT','Target'],['cK','Constraints']];
+function build(){
+  let txt=parts.map(([id,l])=>`${l.toUpperCase()}: ${$(id).value.trim()||'(missing)'}`).join('\n\n');
+  if(explain)txt+='\n\nBefore implementing: explain your approach and list the files/components involved. Then implement.';
+  $('out').textContent=txt;
+  const filled=parts.slice(0,5).filter(([id])=>$(id).value.trim().length>8).length;
+  $('score').textContent=filled===5?'All five CRAFT parts filled. The AI has less to guess.':`CRAFT check: ${filled}/5 parts filled. Fill the rest so the AI stops guessing.`;
+}
+parts.forEach(([id])=>$(id).oninput=build);
+$('explain').onclick=()=>{explain=!explain;$('explain').textContent=explain?'Remove "explain first"':'Add "explain first"';build()};
+$('copy').onclick=async()=>{
+  try{await navigator.clipboard.writeText($('out').textContent);$('copy').textContent='Copied'}
+  catch(e){$('copy').textContent='Select the text to copy'}
+  setTimeout(()=>$('copy').textContent='Copy prompt',1500);
+};
+
+render();build();
+</script>
+</body>
+</html>
